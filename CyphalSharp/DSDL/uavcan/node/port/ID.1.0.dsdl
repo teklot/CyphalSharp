@@ -1,0 +1,6 @@
+# uavcan.node.port.ID.1.0.dsdl
+# Cyphal port ID.
+
+uint16 value
+
+# END OF DSDL

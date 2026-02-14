@@ -1,0 +1,7 @@
+# Heartbeat message
+# The Heartbeat message is used to indicate the presence and status of a node.
+
+uint32 uptime                   # Uptime in seconds.
+uint8 health                    # Node health.
+uint8 mode                      # Node mode.
+uint8 vendor_specific_status_code # Vendor-specific status code.

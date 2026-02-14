@@ -1,0 +1,5 @@
+# uavcan.diagnostic.Record.1.1.dsdl
+uavcan.time.SynchronizedTimestamp.1.0 timestamp
+Severity.1.0 severity
+uint8[<=112] text
+# END OF DSDL

@@ -1,0 +1,8 @@
+# uavcan.register.Access.1.0.dsdl
+# Read or write a register.
+Name.1.0 name
+Value.1.0 value
+---
+# The current value of the register.
+Value.1.0 value
+# END OF DSDL

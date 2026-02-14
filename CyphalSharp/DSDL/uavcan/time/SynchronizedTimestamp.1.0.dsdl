@@ -1,0 +1,4 @@
+# uavcan.time.SynchronizedTimestamp.1.0.dsdl
+# Network-synchronized timestamp.
+uint64 microsecond
+# END OF DSDL

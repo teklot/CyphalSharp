@@ -1,0 +1,16 @@
+using BenchmarkDotNet.Attributes;
+
+namespace CyphalSharp.Benchmark
+{
+    [MemoryDiagnoser]
+    public class CrcBenchmark
+    {
+        private readonly byte[] _payload = [.. Enumerable.Range(0, 255).Select(i => (byte)i)];
+
+        [Benchmark]
+        public UInt16 CrcCalculateSpan()
+        {
+            return Crc.Calculate(_payload);
+        }
+    }
+}

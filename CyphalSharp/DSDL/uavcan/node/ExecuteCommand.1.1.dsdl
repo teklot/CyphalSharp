@@ -1,0 +1,9 @@
+# uavcan.node.ExecuteCommand.1.1.dsdl
+#
+# A simple service to test request/response parsing.
+
+uint16 command
+uint8[5] parameter
+---
+uint8 status
+# END OF DSDL

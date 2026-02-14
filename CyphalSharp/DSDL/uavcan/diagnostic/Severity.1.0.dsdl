@@ -1,0 +1,12 @@
+# uavcan.diagnostic.Severity.1.0.dsdl
+uint8 value
+uint8 TRACE    = 0
+uint8 DEBUG    = 1
+uint8 INFO     = 2
+uint8 NOTICE   = 3
+uint8 WARNING  = 4
+uint8 ERROR    = 5
+uint8 CRITICAL = 6
+uint8 ALERT    = 7
+uint8 EMERGENCY = 8
+# END OF DSDL

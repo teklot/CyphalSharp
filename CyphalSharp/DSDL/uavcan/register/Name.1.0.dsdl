@@ -1,0 +1,4 @@
+# uavcan.register.Name.1.0.dsdl
+# A register name is a UTF-8 string.
+uint8[<=255] name
+# END OF DSDL

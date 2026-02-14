@@ -1,0 +1,26 @@
+# uavcan.node.GetInfo.1.0.dsdl
+# Full node information.
+
+@sealed
+
+---
+
+# Version of the protocol.
+Version.1.0 protocol_version
+
+# Version of the hardware.
+Version.1.0 hardware_version
+
+# Version of the software.
+Version.1.0 software_version
+
+# Unique ID of the node.
+uint8[16] unique_id
+
+# Name of the node.
+uint8[<=50] name
+
+# Optional software image CRC.
+uint64[<=1] software_vcs_revision_id
+
+# END OF DSDL

@@ -1,0 +1,7 @@
+# uavcan.node.Version.1.0.dsdl
+# Generic version information.
+
+uint8 major
+uint8 minor
+
+# END OF DSDL

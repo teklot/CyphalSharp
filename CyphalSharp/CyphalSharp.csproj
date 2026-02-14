@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<LangVersion>latest</LangVersion>
+		<SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+		<Nullable>disable</Nullable>
+		<GenerateDocumentationFile>True</GenerateDocumentationFile>
+		<Title>CyphalSharp</Title>
+		<Version>1.0.0</Version>
+		<Authors>TekLot,$(AssemblyName)</Authors>
+		<Description>CyphalSharp is a lightweight .NET library for parsing Cyphal messages using DSDL definitions. It is extremely fast, flexible, and easy to use, and also provides tools for constructing and encoding Cyphal packets for transmission over any communication protocol.</Description>
+		<Copyright>Copyright © 2026 TekLot</Copyright>
+		<PackageId>CyphalSharp</PackageId>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<PackageTags>
+			Cyphal;OpenCyphal;DSDL;CyphalParser;ArduPilot;PX4;Drone;UAV;UAS;Telemetry;
+			TelemetryParser;FlightControl;Autopilot;MissionPlanner;
+			GCS;GroundStation;Robotics;Aerospace;Communication;CAN;UAVCAN
+		</PackageTags>
+		<PackageProjectUrl>https://github.com/teklot/Cyphalsharp</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/teklot/Cyphalsharp.git</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<PackageReleaseNotes>
+			- Initial commit.
+		</PackageReleaseNotes>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Content Include="DSDL\**\*.dsdl">
+			<PackagePath>contentFiles\any\any\DSDL\</PackagePath>
+			<PackageCopyToOutput>true</PackageCopyToOutput>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="System.Memory" Version="4.6.3" />
+		<PackageReference Include="System.Buffers" Version="4.6.1" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="../README.md" Pack="true" PackagePath="" />
+		<None Include="../LICENSE" Pack="true" PackagePath="" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="CyphalSharp.targets" PackagePath="build/CyphalSharp.targets" />
+	</ItemGroup>
+
+</Project>

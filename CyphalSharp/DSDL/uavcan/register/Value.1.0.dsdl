@@ -1,0 +1,6 @@
+# uavcan.register.Value.1.0.dsdl
+# A polymorphic register value.
+@union
+# Simplified for demonstration
+uint8[<=256] raw_value
+# END OF DSDL
