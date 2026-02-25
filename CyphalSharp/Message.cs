@@ -29,6 +29,16 @@ namespace CyphalSharp
         public bool IsServiceDefinition { get; set; }
 
         /// <summary>
+        /// True if this definition represents a Union (only one field active at a time).
+        /// </summary>
+        public bool IsUnion { get; set; }
+
+        /// <summary>
+        /// The index of the tag field within the Fields list (for unions).
+        /// </summary>
+        public int UnionTagFieldIndex { get; set; }
+
+        /// <summary>
         /// Fields for the Message (if not a service) or the Request part (if a service).
         /// </summary>
         public List<Field> Fields { get; set; } = new List<Field>();
@@ -63,6 +73,24 @@ namespace CyphalSharp
         /// Exclude the message from parsing.
         /// </summary>
         public void Exclude() => IsIncluded = false;
+
+        /// <summary>
+        /// Gets the active union field based on the tag value read from payload.
+        /// Returns null if not a union or tag value is out of range.
+        /// </summary>
+        /// <param name="tagValue">The tag value from the payload.</param>
+        /// <returns>The active field or null.</returns>
+        public Field GetActiveUnionField(int tagValue)
+        {
+            if (!IsUnion || Fields.Count <= 1) return null;
+            
+            foreach (var field in Fields)
+            {
+                if (field.IsUnionVariant && field.UnionTagValue == tagValue)
+                    return field;
+            }
+            return null;
+        }
         #endregion
     }
 }

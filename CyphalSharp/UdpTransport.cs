@@ -18,7 +18,9 @@ namespace CyphalSharp
         private CancellationTokenSource _cts;
         private readonly ushort _localNodeId;
         private readonly HashSet<ushort> _joinedSubjects = new HashSet<ushort>();
-        private readonly ConcurrentDictionary<string, List<UdpFrame>> _reassemblyBuffers = new ConcurrentDictionary<string, List<UdpFrame>>();
+        private readonly ConcurrentDictionary<string, TransferContext> _reassemblyBuffers = new ConcurrentDictionary<string, TransferContext>();
+        private readonly TimeSpan _reassemblyTimeout = TimeSpan.FromSeconds(2);
+        private readonly Timer _cleanupTimer;
 
         /// <inheritdoc />
         public string Name => "UDP";
@@ -36,9 +38,12 @@ namespace CyphalSharp
         /// Initializes a new instance of the <see cref="UdpTransport"/> class.
         /// </summary>
         /// <param name="localNodeId">The ID of the local node.</param>
-        public UdpTransport(ushort localNodeId)
+        /// <param name="reassemblyTimeoutMs">Timeout in milliseconds for multi-frame transfer reassembly (default: 2000ms).</param>
+        public UdpTransport(ushort localNodeId, int reassemblyTimeoutMs = 2000)
         {
             _localNodeId = localNodeId;
+            _reassemblyTimeout = TimeSpan.FromMilliseconds(reassemblyTimeoutMs);
+            _cleanupTimer = new Timer(CleanupStaleTransfers, null, _reassemblyTimeout, _reassemblyTimeout);
         }
 
         /// <inheritdoc />
@@ -107,27 +112,34 @@ namespace CyphalSharp
         {
             if (frame.EndOfTransfer && frame.FrameIndex == 0)
             {
-                // Single frame transfer
                 FrameReceived?.Invoke(this, frame);
                 return;
             }
 
-            // Multi-frame reassembly
             string key = $"{frame.SourceNodeId}_{frame.DataSpecifierId}_{frame.TransferId}";
-            var buffer = _reassemblyBuffers.GetOrAdd(key, _ => new List<UdpFrame>());
-            
-            lock (buffer)
+            var context = _reassemblyBuffers.GetOrAdd(key, _ => new TransferContext(key));
+
+            lock (context)
             {
-                buffer.Add(frame);
+                context.LastUpdate = DateTime.UtcNow;
+                context.Frames.Add(frame);
                 
-                // Check if we have the last frame and all intermediate frames
-                var lastFrame = buffer.FirstOrDefault(f => f.EndOfTransfer);
-                if (lastFrame != null)
+                var lastFrame = context.Frames.FirstOrDefault(f => f.EndOfTransfer);
+                if (lastFrame != null && context.Frames.Count == (lastFrame.FrameIndex + 1))
                 {
-                    // The FrameIndex of the last frame + 1 should be the total number of frames
-                    if (buffer.Count == (lastFrame.FrameIndex + 1))
+                    bool allPresent = true;
+                    for (int i = 0; i <= lastFrame.FrameIndex; i++)
                     {
-                        var completeFrame = Reassemble(buffer);
+                        if (!context.Frames.Any(f => f.FrameIndex == i))
+                        {
+                            allPresent = false;
+                            break;
+                        }
+                    }
+
+                    if (allPresent)
+                    {
+                        var completeFrame = Reassemble(context.Frames);
                         _reassemblyBuffers.TryRemove(key, out _);
                         if (completeFrame != null)
                         {
@@ -135,6 +147,20 @@ namespace CyphalSharp
                         }
                     }
                 }
+            }
+        }
+
+        private void CleanupStaleTransfers(object state)
+        {
+            var now = DateTime.UtcNow;
+            var staleKeys = _reassemblyBuffers
+                .Where(kvp => (now - kvp.Value.LastUpdate) > _reassemblyTimeout)
+                .Select(kvp => kvp.Key)
+                .ToList();
+
+            foreach (var key in staleKeys)
+            {
+                _reassemblyBuffers.TryRemove(key, out _);
             }
         }
 
@@ -181,7 +207,22 @@ namespace CyphalSharp
         public void Dispose()
         {
             _cts?.Cancel();
+            _cleanupTimer?.Dispose();
             _udpClient?.Dispose();
+        }
+
+        private class TransferContext
+        {
+            public string Key { get; }
+            public List<UdpFrame> Frames { get; }
+            public DateTime LastUpdate { get; set; }
+
+            public TransferContext(string key)
+            {
+                Key = key;
+                Frames = new List<UdpFrame>();
+                LastUpdate = DateTime.UtcNow;
+            }
         }
     }
 }

@@ -179,6 +179,12 @@ namespace CyphalSharp
                 targetLength = message.ResponsePayloadLength;
             }
 
+            // Validate payload length - flag severely malformed payloads
+            if (targetLength > 0 && (this.PayloadLength < targetLength / 2 || this.PayloadLength > targetLength * 2))
+            {
+                this.ErrorReason = ErrorReason.PayloadLengthInvalid;
+            }
+
             int bytesToCopy = Math.Min(this.PayloadLength, targetLength);
             
             if (bytesToCopy > 0)

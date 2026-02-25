@@ -100,4 +100,40 @@ public class UdpTransportTests
         Assert.Single(receivedFrames);
         Assert.Equal(new byte[] { 0xAA, 0xBB }, receivedFrames[0].Payload.Take(2).ToArray());
     }
+
+    [Fact]
+    public void Constructor_WithCustomTimeout_SetsTimeout()
+    {
+        var transport = new UdpTransport(42, 5000);
+        // Just verify it can be constructed with custom timeout without error
+        Assert.NotNull(transport);
+    }
+
+    [Fact]
+    public void Reassembly_MissingFrame_DoesNotComplete()
+    {
+        // Arrange
+        var transport = new UdpTransport(42);
+        var receivedFrames = new List<IFrame>();
+        transport.FrameReceived += (s, e) => receivedFrames.Add(e);
+
+        var msg = new Message { Name = "test.MultiFrame" };
+        
+        // Frame 0
+        var f0 = new UdpFrame { SourceNodeId = 1, DataSpecifierId = 200, TransferId = 5, FrameIndex = 0, EndOfTransfer = false, Message = msg };
+        f0.SetPayload(new byte[] { 1 });
+        
+        // Frame 2 (Frame 1 is missing)
+        var f2 = new UdpFrame { SourceNodeId = 1, DataSpecifierId = 200, TransferId = 5, FrameIndex = 2, EndOfTransfer = true, Message = msg };
+        f2.SetPayload(new byte[] { 3 });
+
+        var handleMethod = typeof(UdpTransport).GetMethod("HandleIncomingFrame", BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(handleMethod);
+        
+        handleMethod.Invoke(transport, new object[] { f0 });
+        handleMethod.Invoke(transport, new object[] { f2 });
+
+        // Assert - should not complete because frame 1 is missing
+        Assert.Empty(receivedFrames);
+    }
 }

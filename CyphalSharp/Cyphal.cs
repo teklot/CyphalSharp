@@ -65,6 +65,17 @@ namespace CyphalSharp
         /// <param name="portIds">Optional. A list of Port IDs (Subject IDs) to include for parsing. If empty, all messages from the DSDL are included.</param>
         public static void Initialize(string dsdlPath = "DSDL", params uint[] portIds)
         {
+            Initialize(dsdlPath, null, portIds);
+        }
+
+        /// <summary>
+        /// Initializes the message metadata and internal objects using the given DSDL with port ID mapping.
+        /// </summary>
+        /// <param name="dsdlPath">The path to the DSDL directory or a specific DSDL file.</param>
+        /// <param name="portIdMapping">Optional. A dictionary mapping full type names to their Port IDs.</param>
+        /// <param name="portIds">Optional. A list of Port IDs to include for parsing. If empty, all messages are included.</param>
+        public static void Initialize(string dsdlPath, Dictionary<string, uint> portIdMapping, params uint[] portIds)
+        {
             if (!Directory.Exists(dsdlPath) && !File.Exists(dsdlPath))
             {
                 dsdlPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DSDL");
@@ -80,6 +91,11 @@ namespace CyphalSharp
             {
                 foreach (var message in dsdlInstance.Messages)
                 {
+                    // Apply external mapping if provided
+                    if (portIdMapping != null && portIdMapping.TryGetValue(message.Name, out var mappedId))
+                    {
+                        message.PortId = mappedId;
+                    }
                     RegisteredMessages[message.PortId] = message;
                 }
             }

@@ -29,6 +29,16 @@ namespace CyphalSharp
         /// <summary>Total length in bytes (rounded up if not byte-aligned).</summary>
         public int Length => (BitLength + 7) / 8;
 
+        /// <summary>
+        /// For union types: the tag value that activates this field.
+        /// </summary>
+        public int UnionTagValue { get; set; }
+
+        /// <summary>
+        /// True if this field is part of a union and is not the tag field itself.
+        /// </summary>
+        public bool IsUnionVariant { get; set; }
+
         /// <summary>The number of elements if the field is an array.</summary>
         public int ArrayLength { get; private set; } = 0;
         /// <summary>True if the field is an array type.</summary>

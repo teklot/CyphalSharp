@@ -60,18 +60,19 @@ namespace CyphalSharp
         /// <param name="fullTypeName">The full name of the type, including its namespace.</param>
         /// <param name="major">The major version number.</param>
         /// <param name="minor">The minor version number.</param>
+        /// <param name="portIdOverride">Optional port ID override. If provided, this will be used instead of any ID found in the DSDL.</param>
         /// <returns>A <see cref="Cyphal"/> object representing the parsed DSDL file.</returns>
-        public static Cyphal ParseFile(string filePath, string fullTypeName, int major, int minor)
+        public static Cyphal ParseFile(string filePath, string fullTypeName, int major, int minor, uint? portIdOverride = null)
         {
             var lines = File.ReadAllLines(filePath);
             var dsdl = new Cyphal();
 
+            uint? discoveredPortId = null;
+
             var message = new Message
             {
                 Name = fullTypeName,
-                // Cyphal uses Fixed Port ID, but it's not always in the DSDL file.
-                // For now, let's use a hash or a placeholder if not provided.
-                PortId = CalculateFixedPortId(fullTypeName) 
+                PortId = 0
             };
 
             bool parsingResponse = false;
@@ -85,10 +86,24 @@ namespace CyphalSharp
 
                 if (trimmedLine.StartsWith("@"))
                 {
-                    // Basic support for directives
                     if (trimmedLine == "@union")
                     {
-                        // TODO: Mark message as union
+                        message.IsUnion = true;
+                    }
+                    else if (trimmedLine.StartsWith("@__key__"))
+                    {
+                        var match = Regex.Match(trimmedLine, @"@__key__\s+(\d+)");
+                        if (match.Success && uint.TryParse(match.Groups[1].Value, out var portId))
+                        {
+                            discoveredPortId = portId;
+                        }
+                    }
+                    else if (char.IsDigit(trimmedLine[1]))
+                    {
+                        if (uint.TryParse(trimmedLine.Substring(1), out var portId))
+                        {
+                            discoveredPortId = portId;
+                        }
                     }
                     continue;
                 }
@@ -146,6 +161,27 @@ namespace CyphalSharp
             }
             message.PayloadLength = (currentBitOffset + 7) / 8;
 
+            // Process union fields
+            if (message.IsUnion && message.Fields.Count > 0)
+            {
+                message.UnionTagFieldIndex = 0;
+                var tagField = message.Fields[0];
+                int tagBitLength = tagField.BitLength;
+
+                for (int i = 1; i < message.Fields.Count; i++)
+                {
+                    message.Fields[i].IsUnionVariant = true;
+                    message.Fields[i].UnionTagValue = i - 1;
+                }
+
+                var unionPayloadBits = 0;
+                for (int i = 1; i < message.Fields.Count; i++)
+                {
+                    unionPayloadBits = Math.Max(unionPayloadBits, message.Fields[i].BitOffset + message.Fields[i].BitLength);
+                }
+                message.PayloadLength = (tagBitLength + unionPayloadBits + 7) / 8;
+            }
+
             if (message.IsServiceDefinition)
             {
                 currentBitOffset = 0;
@@ -158,6 +194,9 @@ namespace CyphalSharp
                 }
                 message.ResponsePayloadLength = (currentBitOffset + 7) / 8;
             }
+
+            // Set port ID: override > discovered > hash fallback
+            message.PortId = portIdOverride ?? discoveredPortId ?? CalculateFixedPortId(fullTypeName);
 
             dsdl.Messages.Add(message);
             return dsdl;

@@ -5,8 +5,11 @@ CyphalSharp is a lightweight .NET library for parsing Cyphal messages using DSDL
 ## Features
  - **Runtime DSDL Parsing:** Consumes Cyphal `.dsdl` files at runtime. No code generation required.
  - **Service Support:** Full support for Cyphal Service (RPC) patterns, correctly handling separate Request and Response parts defined with the `---` separator.
+ - **Union Support:** Full support for Cyphal `@union` types with tag-based field switching.
+ - **Fixed Port ID Mapping:** Supports extracting port IDs from DSDL directives or providing external mapping via `Initialize`.
  - **Transport Agnostic:** Designed with a flexible interface (`IFrame`, `ITransport`) to support various Cyphal transports (UDP, CAN, Serial, etc.).
- - **Cyphal/UDP Multicast & Reassembly:** Robust UDP transport implementation that handles standard multicast address mapping and transparent multi-frame transfer reassembly.
+ - **Cyphal/UDP Multicast & Reassembly:** Robust UDP transport implementation that handles standard multicast address mapping and transparent multi-frame transfer reassembly with timeout cleanup.
+ - **Payload Validation:** Built-in validation for malformed payloads with detailed error reasons.
  - **High Performance:** Designed for speed and low allocation to handle high-throughput Cyphal streams.
  - **Streaming Ready:** Built-in support for asynchronous, zero-allocation streaming using `ReadOnlySequence<byte>`.
  - **Cross-Platform:** Can be used on any platform that supports .NET Standard 2.0 (Windows, Linux, macOS, etc.).
@@ -240,6 +243,16 @@ public void ProcessStream(ReadOnlySequence<byte> buffer)
         buffer = buffer.Slice(consumed);
     }
 }
+```
+
+## Quick Start: Send a Heartbeat
+
+```cs
+Cyphal.Initialize("DSDL"); // Load DSDL definitions
+var hbDef = Cyphal.RegisteredMessages.Values.First(m => m.Name.Contains("Heartbeat"));
+var frame = new UdpFrame { SourceNodeId = 42, DataSpecifierId = (ushort)hbDef.PortId, Priority = 3, EndOfTransfer = true };
+frame.SetFields(new Dictionary<string, object> { { "uptime", (uint)0 }, { "health", (byte)0 }, { "mode", (byte)0 }, { "vendor_specific_status_code", (byte)0 } });
+await udpClient.SendAsync(frame.ToBytes(), new IPEndPoint(IPAddress.Parse("239.0.0.1"), 14550)); // Send to Heartbeat multicast
 ```
 
 ## Example Project: CyphalConsole

@@ -74,4 +74,103 @@ public class DsdlParserTests
         Assert.Single(msg.Fields);
         Assert.Equal("value", msg.Fields[0].Name);
     }
+
+    [Fact]
+    public void ParseFile_RegisterValue_IsUnion()
+    {
+        var file = Path.Combine(_dsdlPath, "uavcan", "register", "Value.1.0.dsdl");
+        var dsdl = DsdlParser.ParseFile(file, "uavcan.register.Value", 1, 0);
+        var msg = dsdl.Messages.First();
+
+        Assert.True(msg.IsUnion);
+        Assert.True(msg.UnionTagFieldIndex >= 0);
+    }
+
+    [Fact]
+    public void ParseFile_WithPortIdDirective_ExtractsPortId()
+    {
+        var tempDsdl = Path.Combine(Path.GetTempPath(), $"TestPortId.{DateTime.Now.Ticks}.dsdl");
+        try
+        {
+            File.WriteAllText(tempDsdl, "@12345\nuint32 value");
+            
+            var dsdl = DsdlParser.ParseFile(tempDsdl, "test.TestPortId", 1, 0);
+            var msg = dsdl.Messages.First();
+
+            Assert.Equal(12345u, msg.PortId);
+        }
+        finally
+        {
+            if (File.Exists(tempDsdl)) File.Delete(tempDsdl);
+        }
+    }
+
+    [Fact]
+    public void ParseFile_WithKeyDirective_ExtractsPortId()
+    {
+        var tempDsdl = Path.Combine(Path.GetTempPath(), $"TestKey.{DateTime.Now.Ticks}.dsdl");
+        try
+        {
+            File.WriteAllText(tempDsdl, "@__key__ 54321\nuint16 data");
+            
+            var dsdl = DsdlParser.ParseFile(tempDsdl, "test.TestKey", 1, 0);
+            var msg = dsdl.Messages.First();
+
+            Assert.Equal(54321u, msg.PortId);
+        }
+        finally
+        {
+            if (File.Exists(tempDsdl)) File.Delete(tempDsdl);
+        }
+    }
+
+    [Fact]
+    public void ParseFile_WithPortIdOverride_UsesOverride()
+    {
+        var tempDsdl = Path.Combine(Path.GetTempPath(), $"TestOverride.{DateTime.Now.Ticks}.dsdl");
+        try
+        {
+            File.WriteAllText(tempDsdl, "@100\nuint8 field");
+            
+            var dsdl = DsdlParser.ParseFile(tempDsdl, "test.TestOverride", 1, 0, 99999);
+            var msg = dsdl.Messages.First();
+
+            Assert.Equal(99999u, msg.PortId);
+        }
+        finally
+        {
+            if (File.Exists(tempDsdl)) File.Delete(tempDsdl);
+        }
+    }
+
+    [Fact]
+    public void GetActiveUnionField_ReturnsCorrectField()
+    {
+        var tempDsdl = Path.Combine(Path.GetTempPath(), $"TestUnion.{DateTime.Now.Ticks}.dsdl");
+        try
+        {
+            File.WriteAllText(tempDsdl, "@union\nuint8 tag\nuint32 field_a\nuint16 field_b");
+            
+            var dsdl = DsdlParser.ParseFile(tempDsdl, "test.TestUnion", 1, 0);
+            var msg = dsdl.Messages.First();
+
+            Assert.True(msg.IsUnion);
+            Assert.Equal(3, msg.Fields.Count); // tag + field_a + field_b
+
+            var activeField = msg.GetActiveUnionField(0);
+            Assert.NotNull(activeField);
+            Assert.Equal("field_a", activeField.Name);
+
+            activeField = msg.GetActiveUnionField(1);
+            Assert.NotNull(activeField);
+            Assert.Equal("field_b", activeField.Name);
+
+            activeField = msg.GetActiveUnionField(99); // out of range
+            Assert.Null(activeField);
+        }
+        finally
+        {
+            if (File.Exists(tempDsdl)) File.Delete(tempDsdl);
+        }
+    }
 }

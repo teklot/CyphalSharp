@@ -1,3 +1,5 @@
+using CyphalSharp.Enums;
+
 namespace CyphalSharp.Tests;
 
 public class UdpFrameTests : IDisposable
@@ -138,5 +140,62 @@ public class UdpFrameTests : IDisposable
         byte[] recovered = (byte[])parsed.Fields["value"];
         Assert.Equal((byte)'H', recovered[0]);
         Assert.Equal((byte)'e', recovered[1]);
+    }
+
+    [Fact]
+    public void TryParse_SeverelyShortPayload_SetsPayloadLengthInvalid()
+    {
+        var msg = Cyphal.RegisteredMessages.Values.FirstOrDefault(m => m.Name.Contains("Heartbeat"));
+        Assert.NotNull(msg);
+
+        var frame = new UdpFrame
+        {
+            SourceNodeId = 100,
+            DestinationNodeId = 0xFFFF,
+            DataSpecifierId = (ushort)msg.PortId,
+            TransferId = 1,
+            EndOfTransfer = true,
+            Message = msg
+        };
+
+        byte[] bytes = frame.ToBytes();
+        // Truncate payload to be severely short (< 50% of expected)
+        byte[] truncated = bytes.Take(UdpProtocol.HeaderLength + 1).ToArray();
+        
+        var parsed = new UdpFrame();
+        bool result = parsed.TryParse(truncated);
+        
+        Assert.True(result); // Should still parse (with truncation)
+        Assert.Equal(Enums.ErrorReason.PayloadLengthInvalid, parsed.ErrorReason);
+    }
+
+    [Fact]
+    public void TryParse_ValidPayload_HasNoError()
+    {
+        var msg = Cyphal.RegisteredMessages.Values.FirstOrDefault(m => m.Name.Contains("Heartbeat"));
+        Assert.NotNull(msg);
+
+        var frame = new UdpFrame
+        {
+            SourceNodeId = 100,
+            DestinationNodeId = 0xFFFF,
+            DataSpecifierId = (ushort)msg.PortId,
+            TransferId = 1,
+            EndOfTransfer = true,
+            Message = msg
+        };
+        frame.SetFields(new Dictionary<string, object>
+        {
+            { "uptime", 100U },
+            { "health", (byte)0 },
+            { "mode", (byte)0 },
+            { "vendor_specific_status_code", (byte)0 }
+        });
+
+        var parsed = new UdpFrame();
+        bool result = parsed.TryParse(frame.ToBytes());
+        
+        Assert.True(result);
+        Assert.Equal(Enums.ErrorReason.None, parsed.ErrorReason);
     }
 }
