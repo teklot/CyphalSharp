@@ -196,7 +196,12 @@ namespace CyphalSharp
             }
 
             // Set port ID: override > discovered > hash fallback
-            message.PortId = portIdOverride ?? discoveredPortId ?? CalculateFixedPortId(fullTypeName);
+            uint fallbackMask = message.IsServiceDefinition ? 0x1FFu : 0x1FFFu;
+            message.PortId = portIdOverride ?? discoveredPortId ?? (uint)(fullTypeName.GetHashCode() & fallbackMask);
+            if (message.IsServiceDefinition)
+            {
+                message.PortId |= 0x8000;
+            }
 
             dsdl.Messages.Add(message);
             return dsdl;

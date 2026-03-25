@@ -7,7 +7,7 @@
 		<Nullable>disable</Nullable>
 		<GenerateDocumentationFile>True</GenerateDocumentationFile>
 		<Title>CyphalSharp</Title>
-		<Version>1.1.0</Version>
+		<Version>1.2.0</Version>
 		<Authors>TekLot,$(AssemblyName)</Authors>
 		<Description>CyphalSharp is a lightweight .NET library for parsing Cyphal messages using DSDL definitions. It is extremely fast, flexible, and easy to use, and also provides tools for constructing and encoding Cyphal packets for transmission over any communication protocol.</Description>
 		<Copyright>Copyright © 2026 TekLot</Copyright>
@@ -28,10 +28,11 @@
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<PackageReleaseNotes>
-			- Added Union (@union) DSDL support with tag-based field switching.
-			- Added Fixed Port ID extraction from DSDL directives.
-			- Improved UDP transport reassembly with timeout cleanup.
-			- Added payload validation for malformed data.
+			- Added Cyphal/CAN transport support (CanFrame, CanTransport, CanProtocol).
+			- Implemented multi-frame reassembly for CAN with CRC-16-CCITT verification.
+			- Improved DSDL parsing with service bit preservation and CAN-compliant fallback Port IDs.
+			- Fixed C# 14 compatibility for 'field' keyword in property accessors.
+			- Added comprehensive unit tests for the CAN transport layer.
 		</PackageReleaseNotes>
 	</PropertyGroup>
 

@@ -84,11 +84,11 @@ namespace CyphalSharp
                         }
 
                         ReadOnlySpan<byte> span = Payload.AsSpan(0, length);
-                        foreach (var field in fields)
+                        foreach (var @field in fields)
                         {
-                            if (field.BitOffset + field.BitLength <= span.Length * 8)
+                            if (@field.BitOffset + @field.BitLength <= span.Length * 8)
                             {
-                                _fields[field.Name] = field.GetValue(span);
+                                _fields[@field.Name] = @field.GetValue(span);
                             }
                         }
                     }

@@ -9,6 +9,73 @@ static class Transmitter
     private static readonly Random random = new();
     private static ulong transferIdCounter = 0;
 
+    public static void RunCan(UdpClient udpClient, IPEndPoint remoteEndPoint, CanTransport transport)
+    {
+        // Filter to only messages that fit in a single CAN FD frame (63 bytes payload max)
+        var messageIds = Cyphal.RegisteredMessages
+            .Where(kvp => kvp.Value.PayloadLength <= 63)
+            .Select(kvp => kvp.Key)
+            .ToList();
+
+        if (!messageIds.Any())
+        {
+            TerminalLayout.WriteTx("Tx: No Cyphal messages fit in single CAN frame. Exiting Tx thread.");
+            return;
+        }
+
+        transport.RawFrameSent += (sender, rawFrame) =>
+        {
+            try
+            {
+                byte[] packet = new byte[4 + rawFrame.Payload.Length];
+                BitConverter.GetBytes(rawFrame.CanId).CopyTo(packet, 0);
+                rawFrame.Payload.CopyTo(packet, 4);
+                udpClient.Send(packet, packet.Length, remoteEndPoint);
+            }
+            catch (Exception ex)
+            {
+                TerminalLayout.WriteTx($"Tx Send Error: {ex.Message}");
+            }
+        };
+
+        while (true)
+        {
+            try
+            {
+                // Select a random message ID (Subject ID)
+                uint randomMessageId = messageIds[random.Next(messageIds.Count)];
+                if (Cyphal.RegisteredMessages.TryGetValue(randomMessageId, out var message))
+                {
+                    var frame = new CanFrame
+                    {
+                        Priority = 3,
+                        SourceNodeId = (ushort)random.Next(1, 100),
+                        DataSpecifierId = (ushort)message.PortId,
+                        TransferId = transferIdCounter++,
+                        Message = message
+                    };
+
+                    frame.SetFields(GenerateFieldValues(message, random));
+                    
+                    // Trigger RawFrameSent via transport
+                    transport.SendAsync(frame).GetAwaiter().GetResult();
+
+                    TerminalLayout.WriteTx($"Tx [CAN] => " +
+                        $"TID: {frame.TransferId}, " +
+                        $"Src: {frame.SourceNodeId}, " +
+                        $"Subj: {message.PortId}, " +
+                        $"Name: {message.Name}");
+                }
+            }
+            catch (Exception ex)
+            {
+                TerminalLayout.WriteTx($"Tx Loop Error: {ex.Message}");
+            }
+            
+            Thread.Sleep(500); 
+        }
+    }
+
     public static void Run(UdpClient udpClient, IPEndPoint remoteEndPoint)
     {
         var messageIds = Cyphal.RegisteredMessages.Keys.ToList();
@@ -20,46 +87,49 @@ static class Transmitter
 
         while (true)
         {
-            // Select a random message ID (Subject ID)
-            uint randomMessageId = messageIds[random.Next(messageIds.Count)];
-
-            if (Cyphal.RegisteredMessages.TryGetValue(randomMessageId, out var message))
+            try
             {
-                ushort sourceNodeId = (ushort)random.Next(1, 100);
-                
-                var fieldValues = GenerateFieldValues(message, random);
+                // Select a random message ID (Subject ID)
+                uint randomMessageId = messageIds[random.Next(messageIds.Count)];
 
-                var frame = new UdpFrame
+                if (Cyphal.RegisteredMessages.TryGetValue(randomMessageId, out var message))
                 {
-                    Version = 0,
-                    Priority = 3,
-                    SourceNodeId = sourceNodeId,
-                    DestinationNodeId = 0xFFFF, // Broadcast
-                    DataSpecifierId = (ushort)message.PortId,
-                    TransferId = transferIdCounter++,
-                    FrameIndex = 0,
-                    EndOfTransfer = true,
-                    Message = message
-                };
+                    ushort sourceNodeId = (ushort)random.Next(1, 100);
+                    
+                    var fieldValues = GenerateFieldValues(message, random);
 
-                frame.SetFields(fieldValues);
+                    var frame = new UdpFrame
+                    {
+                        Version = 0,
+                        Priority = 3,
+                        SourceNodeId = sourceNodeId,
+                        DestinationNodeId = 0xFFFF, // Broadcast
+                        DataSpecifierId = (ushort)message.PortId,
+                        TransferId = transferIdCounter++,
+                        FrameIndex = 0,
+                        EndOfTransfer = true,
+                        Message = message
+                    };
 
-                byte[] packet = frame.ToBytes();
+                    frame.SetFields(fieldValues);
 
-                udpClient.Send(packet, packet.Length, remoteEndPoint);
+                    byte[] packet = frame.ToBytes();
 
-                TerminalLayout.WriteTx($"Tx => " +
-                    $"TID: {frame.TransferId}, " +
-                    $"Src: {frame.SourceNodeId}, " +
-                    $"Subj: {message.PortId}, " +
-                    $"Name: {message.Name}");
+                    udpClient.Send(packet, packet.Length, remoteEndPoint);
+
+                    TerminalLayout.WriteTx($"Tx => " +
+                        $"TID: {frame.TransferId}, " +
+                        $"Src: {frame.SourceNodeId}, " +
+                        $"Subj: {message.PortId}, " +
+                        $"Name: {message.Name}");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                TerminalLayout.WriteTx($"Tx: Could not find message definition for ID: {randomMessageId}");
+                TerminalLayout.WriteTx($"Tx UDP Error: {ex.Message}");
             }
 
-            Thread.Sleep(100); // Send message every 100ms
+            Thread.Sleep(500); 
         }
     }
 
@@ -117,7 +187,6 @@ static class Transmitter
         if (type == typeof(double)) return random.NextDouble() * 1000.0;
         if (type == typeof(char)) return (char)random.Next('a', 'z' + 1);
 
-        // Default for unsupported types, throw an exception
         throw new InvalidOperationException($"Unsupported type for random generation: {type.FullName}");
     }
 }

@@ -9,6 +9,7 @@ CyphalSharp is a lightweight .NET library for parsing Cyphal messages using DSDL
  - **Fixed Port ID Mapping:** Supports extracting port IDs from DSDL directives or providing external mapping via `Initialize`.
  - **Transport Agnostic:** Designed with a flexible interface (`IFrame`, `ITransport`) to support various Cyphal transports (UDP, CAN, Serial, etc.).
  - **Cyphal/UDP Multicast & Reassembly:** Robust UDP transport implementation that handles standard multicast address mapping and transparent multi-frame transfer reassembly with timeout cleanup.
+ - **Cyphal/CAN Support:** Full support for CAN Classic and CAN FD with automated tail byte handling and multi-frame reassembly (including CRC-16-CCITT verification).
  - **Payload Validation:** Built-in validation for malformed payloads with detailed error reasons.
  - **High Performance:** Designed for speed and low allocation to handle high-throughput Cyphal streams.
  - **Streaming Ready:** Built-in support for asynchronous, zero-allocation streaming using `ReadOnlySequence<byte>`.
@@ -47,6 +48,11 @@ CyphalSharp is designed to be extensible. Currently, it includes built-in suppor
     - Automatic IGMP/Multicast group joining based on Subject IDs.
     - Transparent reassembly of multi-frame transfers.
     - Port-to-Address mapping according to the Cyphal/UDP specification.
+- **Cyphal/CAN:** via `CanFrame` and `CanTransport` which handles:
+    - 29-bit CAN ID encoding/decoding.
+    - Tail byte processing (SOT, EOT, Toggle, Transfer ID).
+    - Multi-frame reassembly with CRC-16-CCITT validation.
+    - Support for both CAN Classic and CAN FD payload sizes.
 
 To support a new transport, you can implement the `IFrame` and `ITransport` interfaces or derive from the `Frame` base class.
 
