@@ -1,20 +1,28 @@
-# CyphalSharp
+# CyphalSharp v1.3.0
 
 CyphalSharp is a lightweight .NET library for parsing Cyphal messages using DSDL (Data Structure Description Language) definitions as specified by [OpenCyphal](https://opencyphal.org/). It is extremely fast, flexible, and easy to use, and also provides tools for constructing and encoding Cyphal packets for transmission over any communication protocol.
 
 ## Features
- - **Runtime DSDL Parsing:** Consumes Cyphal `.dsdl` files at runtime. No code generation required.
- - **Service Support:** Full support for Cyphal Service (RPC) patterns, correctly handling separate Request and Response parts defined with the `---` separator.
- - **Union Support:** Full support for Cyphal `@union` types with tag-based field switching.
- - **Fixed Port ID Mapping:** Supports extracting port IDs from DSDL directives or providing external mapping via `Initialize`.
- - **Transport Agnostic:** Designed with a flexible interface (`IFrame`, `ITransport`) to support various Cyphal transports (UDP, CAN, Serial, etc.).
- - **Cyphal/UDP Multicast & Reassembly:** Robust UDP transport implementation that handles standard multicast address mapping and transparent multi-frame transfer reassembly with timeout cleanup.
- - **Cyphal/CAN Support:** Full support for CAN Classic and CAN FD with automated tail byte handling and multi-frame reassembly (including CRC-16-CCITT verification).
- - **Payload Validation:** Built-in validation for malformed payloads with detailed error reasons.
- - **High Performance:** Designed for speed and low allocation to handle high-throughput Cyphal streams.
- - **Streaming Ready:** Built-in support for asynchronous, zero-allocation streaming using `ReadOnlySequence<byte>`.
- - **Cross-Platform:** Can be used on any platform that supports .NET Standard 2.0 (Windows, Linux, macOS, etc.).
- - **Minimal Dependencies:** Only requires `System.Memory` and `System.Buffers` for modern memory-efficient parsing.
+- **Runtime DSDL Parsing:** Consumes Cyphal `.dsdl` files at runtime. No code generation required.
+- **Service Support:** Full support for Cyphal Service (RPC) patterns, correctly handling separate Request and Response parts defined with the `---` separator.
+- **Union Support:** Full support for Cyphal `@union` types with tag-based field switching.
+- **Fixed Port ID Mapping:** Supports extracting port IDs from DSDL directives or providing external mapping via `Initialize`.
+- **Transport Agnostic:** Designed with a flexible interface (`IFrame`, `ITransport`) to support various Cyphal transports (UDP, CAN, Serial, etc.).
+- **Cyphal/UDP Multicast & Reassembly:** Robust UDP transport implementation that handles standard multicast address mapping and transparent multi-frame transfer reassembly with timeout cleanup.
+- **Cyphal/CAN Support:** Full support for CAN Classic and CAN FD with automated tail byte handling and multi-frame reassembly (including CRC-16-CCITT verification).
+- **Plug-and-Play Node Services:** Built-in `CyphalNode` class implementing standard uavcan.node services:
+  - **Heartbeat:** Automatic publishing every 1 second with uptime, health, mode, and vendor status.
+  - **GetInfo:** Responds with protocol/hardware/software versions, unique ID, and node name.
+  - **ExecuteCommand:** Event-driven service for external command execution.
+- **Payload Validation:** Built-in validation for malformed payloads with detailed error reasons.
+- **High Performance:** Designed for speed and low allocation to handle high-throughput Cyphal streams.
+- **Streaming Ready:** Built-in support for asynchronous, zero-allocation streaming using `ReadOnlySequence<byte>`.
+- **Cross-Platform:** Can be used on any platform that supports .NET Standard 2.0 (Windows, Linux, macOS, etc.).
+- **Minimal Dependencies:** Only requires `System.Memory` and `System.Buffers` for modern memory-efficient parsing.
+
+## Solution File
+
+The project solution is available in the new XML-based `.slnx` format (`CyphalSharp.slnx`) as well as the traditional `.sln` format for backwards compatibility. Visual Studio 2022 version 17.14 or later is required to open `.slnx` files.
 
 ## Supported Frameworks
 
@@ -279,6 +287,44 @@ This example provides a quick way to:
 1.  Navigate to the `CyphalConsole` project directory in your terminal.
 2.  Run the project using `dotnet run`.
     *   You will see both `Tx =>` (transmitted) and `Rx =>` (received) messages in the same terminal.
+
+## Plug-and-Play Node Example
+
+The `CyphalNode` class provides a simple way to implement standard Cyphal node services (Heartbeat, GetInfo, ExecuteCommand).
+
+```cs
+using CyphalSharp;
+
+// 1. Initialize the library with DSDL definitions
+Cyphal.Initialize("DSDL");
+
+// 2. Create a transport (UDP or CAN)
+var transport = new UdpTransport(nodeId: 42);
+
+// 3. Create and configure the node
+var node = new CyphalNode(42, transport)
+{
+    Name = "MyCyphalNode",
+    Health = 0, // HEALTH_NOMINAL
+    Mode = 1    // MODE_INITIALIZING
+};
+
+// 4. Optional: Handle ExecuteCommand requests
+node.ExecuteCommandReceived += (sender, args) =>
+{
+    Console.WriteLine($"Received command: {args.Command}");
+    // Set args.Result to 0 for SUCCESS, or other values for failure
+    args.Result = 0;
+};
+
+// 5. Start the node (begins publishing Heartbeat, responds to GetInfo/ExecuteCommand)
+await node.StartAsync();
+
+// Node is now operational...
+// When done:
+node.Stop();
+node.Dispose();
+```
 
 ## Benchmark Project: CyphalSharp.Benchmark
 

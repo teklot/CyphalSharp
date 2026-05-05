@@ -10,18 +10,13 @@ namespace CyphalSharp
     /// Represents a single, parsed Cyphal/UDP frame.
     /// This class contains the raw data from the wire and the decoded payload fields.
     /// </summary>
-    public class UdpFrame : Frame
+    public class UdpFrame : Frame, IFrameWithDestination
     {
         #region Properties
         /// <summary>
         /// Protocol version (0).
         /// </summary>
         public byte Version { get; set; } = 0;
-
-        /// <summary>
-        /// Destination Node ID (16-bit).
-        /// </summary>
-        public ushort DestinationNodeId { get; set; }
 
         /// <summary>
         /// Frame index within the transfer (31 bits).

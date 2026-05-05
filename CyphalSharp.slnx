@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Solution>
+  <Project Path="CyphalSharp\CyphalSharp.csproj" />
+  <Project Path="CyphalSharp.Tests\CyphalSharp.Tests.csproj" />
+  <Project Path="CyphalSharp.Benchmark\CyphalSharp.Benchmark.csproj" />
+  <Project Path="CyphalConsole\CyphalConsole.csproj" />
+</Solution>

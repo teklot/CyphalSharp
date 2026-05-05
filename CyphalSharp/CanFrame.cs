@@ -10,19 +10,13 @@ namespace CyphalSharp
     /// Represents a single, parsed Cyphal/CAN frame.
     /// This class contains the raw data from the CAN bus and the decoded payload fields.
     /// </summary>
-    public class CanFrame : Frame
+    public class CanFrame : Frame, IFrameWithDestination
     {
         #region Properties
         /// <summary>
         /// The 29-bit CAN ID.
         /// </summary>
         public uint CanId { get; set; }
-
-        /// <summary>
-        /// Destination Node ID (7 bits), only applicable for Service transfers.
-        /// For messages, this is always 0.
-        /// </summary>
-        public byte DestinationNodeId { get; set; }
 
         /// <summary>
         /// True if this is the start of a transfer (from tail byte).

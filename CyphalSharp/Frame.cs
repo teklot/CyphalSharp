@@ -51,6 +51,11 @@ namespace CyphalSharp
         public DateTime Timestamp { get; protected set; }
 
         /// <summary>
+        /// Destination Node ID for service transfers (0 for message transfers).
+        /// </summary>
+        public ushort DestinationNodeId { get; set; }
+
+        /// <summary>
         /// Manually set the payload and its length. Used during reassembly.
         /// </summary>
         public void SetPayload(ReadOnlySpan<byte> data)

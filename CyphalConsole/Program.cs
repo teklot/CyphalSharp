@@ -12,13 +12,18 @@ class Program
     static async Task Main(string[] args)
     {
         string transportType = args.Length > 0 ? args[0].ToUpper() : "UDP";
+        string mode = args.Length > 1 ? args[1].ToUpper() : "CONSOLE";
 
         TerminalLayout.Initialize();
 
         // Initialize CyphalSharp with the DSDL directory
         Cyphal.Initialize("DSDL");
 
-        if (transportType == "CAN")
+        if (mode == "NODE")
+        {
+            await RunNodeMode(transportType);
+        }
+        else if (transportType == "CAN")
         {
             await RunCanMode();
         }
@@ -64,5 +69,37 @@ class Program
             // Keep the application alive
             await Task.WhenAll(txTask, rxTask);
         }
+    }
+
+    static async Task RunNodeMode(string transportType)
+    {
+        if (transportType == "CAN")
+        {
+            TerminalLayout.WriteTx("Node mode for CAN transport not yet implemented");
+            return;
+        }
+
+        // Create transport and node
+        var transport = new UdpTransport(42); // Node ID 42
+        var node = new CyphalNode(42, transport)
+        {
+            Name = "CyphalConsole.Node",
+            Health = 0, // NOMINAL
+            Mode = 1    // INITIALIZING
+        };
+
+        // Handle ExecuteCommand requests
+        node.ExecuteCommandReceived += (sender, args) =>
+        {
+            TerminalLayout.WriteRx($"Rx [NODE] => ExecuteCommand received: {args.Command}");
+            args.Result = 0; // SUCCESS
+        };
+
+        // Start the node (begins Heartbeat publishing, responds to GetInfo/ExecuteCommand)
+        await node.StartAsync();
+        TerminalLayout.WriteTx("Tx [NODE] => CyphalNode started (Heartbeat every 1s)");
+
+        // Keep the application alive
+        await Task.Delay(Timeout.Infinite);
     }
 }
